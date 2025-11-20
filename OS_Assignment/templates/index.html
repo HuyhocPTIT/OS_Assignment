@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Monitor Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 600;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 48px rgba(0,0,0,0.15);
+        }
+
+        .metric-icon {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+
+        .metric-card h2 {
+            font-size: 1em;
+            color: #666;
+            margin-bottom: 15px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .metric-value {
+            font-size: 3em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .process-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .process-section h2 {
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+            font-weight: 600;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .process-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        .process-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .process-table th {
+            padding: 18px 15px;
+            text-align: left;
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+        }
+
+        .process-table td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #555;
+        }
+
+        .process-table tbody tr {
+            transition: background-color 0.2s ease;
+        }
+
+        .process-table tbody tr:hover {
+            background-color: #f8f9ff;
+        }
+
+        .process-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-high {
+            background: #fee;
+            color: #c33;
+        }
+
+        .badge-medium {
+            background: #ffeaa7;
+            color: #d63031;
+        }
+
+        .badge-low {
+            background: #dfe6e9;
+            color: #636e72;
+        }
+
+        .loading {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .last-update {
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+            opacity: 0.8;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metric-value {
+                font-size: 2.5em;
+            }
+
+            .process-table th,
+            .process-table td {
+                padding: 10px 8px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖥️ System Monitor Dashboard</h1>
+            <p>Giám sát hệ thống thời gian thực</p>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-icon">⚡</div>
+                <h2>CPU Usage</h2>
+                <div class="metric-value" id="cpu-value">--</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">💾</div>
+                <h2>RAM Usage</h2>
+                <div class="metric-value" id="ram-value">--</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">📥</div>
+                <h2>Disk Read</h2>
+                <div class="metric-value" id="disk-read-value">--</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">📤</div>
+                <h2>Disk Write</h2>
+                <div class="metric-value" id="disk-write-value">--</div>
+            </div>
+        </div>
+
+        <div class="process-section">
+            <h2>🔥 Top 10 Tiến Trình Tiêu Thụ Tài Nguyên</h2>
+            <div class="table-container">
+                <table class="process-table">
+                    <thead>
+                        <tr>
+                            <th>PID</th>
+                            <th>PPID</th>
+                            <th>Tên Tiến Trình</th>
+                            <th>CPU %</th>
+                            <th>RAM %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="process-list">
+                        <tr>
+                            <td colspan="5" class="loading">
+                                <div class="spinner"></div>
+                                Đang tải dữ liệu...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="last-update" id="last-update">
+            Cập nhật lần cuối: --
+        </div>
+    </div>
+
+    <script>
+        function formatValue(value, unit) {
+            return value.toFixed(1) + unit;
+        }
+
+        function getBadgeClass(value) {
+            if (value >= 70) return 'badge-high';
+            if (value >= 40) return 'badge-medium';
+            return 'badge-low';
+        }
+
+        function updateMetrics() {
+            fetch('/api/metrics')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('cpu-value').textContent = formatValue(data.cpu_percent, '%');
+                    document.getElementById('ram-value').textContent = formatValue(data.ram_percent, '%');
+                    document.getElementById('disk-read-value').textContent = data.disk_read_mb.toFixed(2) + ' MB/s';
+                    document.getElementById('disk-write-value').textContent = data.disk_write_mb.toFixed(2) + ' MB/s';
+                    updateLastUpdateTime();
+                })
+                .catch(error => console.error('Lỗi khi fetch metrics:', error));
+        }
+
+        function updateProcesses() {
+            fetch('/api/processes')
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('process-list');
+                    tableBody.innerHTML = '';
+                    
+                    if (data.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="5" class="loading">Không có dữ liệu</td></tr>';
+                        return;
+                    }
+                    
+                    data.forEach(proc => {
+                        const row = tableBody.insertRow();
+                        row.insertCell().textContent = proc.pid;
+                        row.insertCell().textContent = proc.ppid || 'N/A';
+                        row.insertCell().textContent = proc.name;
+                        
+                        const cpuCell = row.insertCell();
+                        const cpuValue = proc.cpu_percent.toFixed(1);
+                        cpuCell.innerHTML = `<span class="status-badge ${getBadgeClass(proc.cpu_percent)}">${cpuValue}%</span>`;
+                        
+                        const memCell = row.insertCell();
+                        const memValue = proc.memory_percent.toFixed(1);
+                        memCell.innerHTML = `<span class="status-badge ${getBadgeClass(proc.memory_percent)}">${memValue}%</span>`;
+                    });
+                })
+                .catch(error => console.error('Lỗi khi fetch processes:', error));
+        }
+
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('vi-VN');
+            document.getElementById('last-update').textContent = `Cập nhật lần cuối: ${timeString}`;
+        }
+
+        // Khởi chạy
+        updateMetrics();
+        updateProcesses();
+        setInterval(updateMetrics, 2000);
+        setInterval(updateProcesses, 4000);
+    </script>
+</body>
+</html>
