@@ -106,6 +106,7 @@
             border-radius: 20px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
             animation: fadeInUp 0.8s ease-out;
+            margin-bottom: 30px;
         }
 
         .process-section h2 {
@@ -182,6 +183,119 @@
             color: #636e72;
         }
 
+        /* Process Tree Styles */
+        .tree-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .process-node {
+            margin: 8px 0;
+            padding: 12px;
+            border-left: 3px solid #667eea;
+            border-radius: 4px;
+            background: #f8f9fa;
+            transition: all 0.2s ease;
+            font-size: 0.95em;
+        }
+
+        .process-node:hover {
+            background: #eff0f9;
+            border-left-color: #764ba2;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+
+        .process-pid {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 8px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .process-name {
+            font-weight: 600;
+            color: #333;
+            margin-right: 12px;
+        }
+
+        .process-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-label {
+            font-weight: 600;
+            color: #999;
+        }
+
+        .stat-value {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .indent-1 { margin-left: 0px; }
+        .indent-2 { margin-left: 30px; }
+        .indent-3 { margin-left: 60px; }
+        .indent-4 { margin-left: 90px; }
+        .indent-5 { margin-left: 120px; }
+        .indent-6 { margin-left: 150px; }
+
+        .tree-indicator {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-right: 6px;
+            font-size: 12px;
+            line-height: 16px;
+            text-align: center;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .cpu-high { color: #e74c3c; font-weight: bold; }
+        .cpu-medium { color: #f39c12; }
+        .cpu-low { color: #27ae60; }
+
+        .memory-high { color: #e74c3c; font-weight: bold; }
+        .memory-medium { color: #f39c12; }
+        .memory-low { color: #27ae60; }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
         .loading {
             text-align: center;
             color: #999;
@@ -251,6 +365,13 @@
                 padding: 10px 8px;
                 font-size: 0.9em;
             }
+
+            .indent-1 { margin-left: 0px; }
+            .indent-2 { margin-left: 15px; }
+            .indent-3 { margin-left: 30px; }
+            .indent-4 { margin-left: 45px; }
+            .indent-5 { margin-left: 60px; }
+            .indent-6 { margin-left: 75px; }
         }
     </style>
 </head>
@@ -281,6 +402,18 @@
                 <div class="metric-icon">📤</div>
                 <h2>Disk Write</h2>
                 <div class="metric-value" id="disk-write-value">--</div>
+            </div>
+        </div>
+
+        <div class="process-section">
+            <h2>🌳 Process Tree</h2>
+            <div class="table-container">
+                <div class="tree-container" id="process-tree">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Đang tải Process Tree...
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -325,6 +458,50 @@
             return 'badge-low';
         }
 
+        function getResourceColor(value, type) {
+            if (type === 'cpu') {
+                if (value > 50) return 'cpu-high';
+                if (value > 20) return 'cpu-medium';
+                return 'cpu-low';
+            } else if (type === 'memory') {
+                if (value > 50) return 'memory-high';
+                if (value > 20) return 'memory-medium';
+                return 'memory-low';
+            }
+            return '';
+        }
+
+        function renderTree(nodes, indent = 0) {
+            let html = "";
+            nodes.forEach((n, idx) => {
+                const indicator = n.children.length > 0 ? '▼' : '—';
+                const indentClass = `indent-${Math.min(indent + 1, 6)}`;
+                const cpuColor = getResourceColor(parseFloat(n.cpu), 'cpu');
+                const memoryColor = getResourceColor(n.memory, 'memory');
+                
+                html += `<div class="process-node ${indentClass}">
+                    <span class="tree-indicator">${indicator}</span>
+                    <span class="process-pid">${n.pid}</span>
+                    <span class="process-name">${n.name}</span>
+                    <div class="process-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">CPU:</span>
+                            <span class="stat-value ${cpuColor}">${n.cpu}%</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">RAM:</span>
+                            <span class="stat-value ${memoryColor}">${n.memory.toFixed(1)}%</span>
+                        </div>
+                    </div>
+                </div>`;
+                
+                if (n.children.length > 0) {
+                    html += renderTree(n.children, indent + 1);
+                }
+            });
+            return html;
+        }
+
         function updateMetrics() {
             fetch('/api/metrics')
                 .then(response => response.json())
@@ -336,6 +513,20 @@
                     updateLastUpdateTime();
                 })
                 .catch(error => console.error('Lỗi khi fetch metrics:', error));
+        }
+
+        function updateProcessTree() {
+            fetch('/api/process_tree')
+                .then(response => response.json())
+                .then(data => {
+                    const treeContainer = document.getElementById('process-tree');
+                    if (data.length === 0) {
+                        treeContainer.innerHTML = '<div class="loading">Không có dữ liệu</div>';
+                        return;
+                    }
+                    treeContainer.innerHTML = renderTree(data);
+                })
+                .catch(error => console.error('Lỗi khi fetch process tree:', error));
         }
 
         function updateProcesses() {
@@ -376,8 +567,10 @@
 
         // Khởi chạy
         updateMetrics();
+        updateProcessTree();
         updateProcesses();
         setInterval(updateMetrics, 2000);
+        setInterval(updateProcessTree, 3000);
         setInterval(updateProcesses, 4000);
     </script>
 </body>
